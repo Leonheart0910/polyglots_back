@@ -166,16 +166,13 @@ class ReadWordsResponse(BaseModel):
 async def read_words(request: ReadWordsRequest):
     connection = None
     try:
-        # DB 연결
         connection = mysql.connector.connect(**DB_CONFIG)
         if connection.is_connected():
             print("Successfully connected to the database")
         else:
-            return {"error": "Failed to connect to the database"}
+            raise HTTPException(status_code=500, detail="Failed to connect to the database")
 
         cursor = connection.cursor()
-
-        # user_id로 word_origin 데이터 읽기 (updated_at 기준 오래된 순)
         query = """
         SELECT word_origin
         FROM word_review
@@ -183,27 +180,30 @@ async def read_words(request: ReadWordsRequest):
         ORDER BY updated_at ASC
         LIMIT %s
         """
-
         cursor.execute(query, (request.user_id, request.max_words))
         rows = cursor.fetchall()
 
-        # word_origin 리스트 생성
-        words = [row[0] for row in rows] if rows else []
+        if not rows:
+            raise HTTPException(status_code=404, detail="No words found for the given user_id")
+
+        words = [row[0] for row in rows]
+        print(f"Fetched words: {words}")  # 디버깅용 출력
 
         return ReadWordsResponse(user_id=request.user_id, words=words)
 
     except mysql.connector.Error as e:
         print(f"Database error: {e}")
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
     except Exception as e:
         print(f"Unexpected error: {e}")
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
     finally:
         if connection and connection.is_connected():
             connection.close()
             print("Database connection closed")
+
 
 
 
