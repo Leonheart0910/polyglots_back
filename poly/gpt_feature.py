@@ -1,7 +1,7 @@
 from openai import OpenAI
 from typing import List
 
-openai_api_key = "no key"
+openai_api_key = ""
 client = OpenAI(api_key = openai_api_key)
 
 
