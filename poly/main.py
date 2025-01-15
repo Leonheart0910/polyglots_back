@@ -160,6 +160,13 @@ class ReadWordsRequest(BaseModel):
 async def read_words(request: ReadWordsRequest):
     connection = None
     try:
+        DB_CONFIG = {
+            "host": "43.201.113.85",  # 업데이트 필요
+            "port": 3306,
+            "user": "ubuntu",
+            "password": "****",
+            "database": "polyglot_db"
+        }
         # DB 연결
         connection = mysql.connector.connect(**DB_CONFIG)
         if connection.is_connected():
