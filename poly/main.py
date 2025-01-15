@@ -150,11 +150,11 @@ async def sentence_segment(request: SentenceSegmentationRequest):
 #------------------------------------------------------------------------------#
 # feat - page 4 review를 위한 DB read
 
-
 # Request 모델 정의
 class ReadWordsRequest(BaseModel):
     user_id: int
     max_words: Optional[int] = 5  # 최대 읽어올 단어 개수 (기본값: 5)
+    target_language: str  # 추가: 학습할 언어
 
 @app.post("/db/read-words")
 async def read_words(request: ReadWordsRequest):
@@ -191,9 +191,14 @@ async def read_words(request: ReadWordsRequest):
         # word_origin 리스트 생성
         words = [row[0] for row in rows] if rows else []
 
+        # words 리스트를 gen_review에 넣어 문단 생성
+        if not words:
+            return {"error": "No words found for the given user_id"}
+
+        paragraph = gen_review(searched_words=words, target_language=request.target_language)
+
         return {
-            "user_id": request.user_id,
-            "words": words
+            "paragraph": paragraph
         }
 
     except mysql.connector.Error as e:
