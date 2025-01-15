@@ -117,8 +117,34 @@ async def gpt_search(request: GPTSearchRequest):
 
 
 
-#
 #------------------------------------------------------------------------------#
+# 복합적인 문장을 split 하여 쉬운 문장 여러개로 분할 하는 post api
+
+class SentenceSegmentationRequest(BaseModel):
+    complex_sentence: str
+    target_language: str
+
+@app.post("/gpt/sentence-segment")
+async def sentence_segment(request: SentenceSegmentationRequest):
+    """
+    Endpoint to segment a complex sentence into multiple simple sentences.
+    """
+    try:
+        # Extract parameters from the request
+        complex_sentence = request.complex_sentence
+        mother_tongue = "english"
+        target_language = request.target_language
+
+        # Call the sent_seg function from gpt_feature.py
+        segmented_sentence = sent_seg(complex_sentence, mother_tongue, target_language)
+
+        return {
+            "original_sentence": complex_sentence,
+            "segmented_sentence": segmented_sentence
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
 
 # 데이터 읽기 엔드포인트
 @app.get("/db/read")
