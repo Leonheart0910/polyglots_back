@@ -147,7 +147,6 @@ async def sentence_segment(request: SentenceSegmentationRequest):
         return {"error": str(e)}
 
 
-
 #------------------------------------------------------------------------------#
 # feat - page 4 review를 위한 DB read
 
@@ -157,22 +156,20 @@ class ReadWordsRequest(BaseModel):
     user_id: int
     max_words: Optional[int] = 5  # 최대 읽어올 단어 개수 (기본값: 5)
 
-# Response 모델 정의
-class ReadWordsResponse(BaseModel):
-    user_id: int
-    words: List[str]
-
-@app.post("/db/read-words", response_model=ReadWordsResponse)
+@app.post("/db/read-words")
 async def read_words(request: ReadWordsRequest):
     connection = None
     try:
+        # DB 연결
         connection = mysql.connector.connect(**DB_CONFIG)
         if connection.is_connected():
             print("Successfully connected to the database")
         else:
-            raise HTTPException(status_code=500, detail="Failed to connect to the database")
+            return {"error": "Failed to connect to the database"}
 
         cursor = connection.cursor()
+
+        # user_id로 word_origin 데이터 읽기 (updated_at 기준 오래된 순)
         query = """
         SELECT word_origin
         FROM word_review
@@ -180,33 +177,30 @@ async def read_words(request: ReadWordsRequest):
         ORDER BY updated_at ASC
         LIMIT %s
         """
+
         cursor.execute(query, (request.user_id, request.max_words))
         rows = cursor.fetchall()
 
-        if not rows:
-            raise HTTPException(status_code=404, detail="No words found for the given user_id")
+        # word_origin 리스트 생성
+        words = [row[0] for row in rows] if rows else []
 
-        words = [row[0] for row in rows]
-        print(f"Fetched words: {words}")  # 디버깅용 출력
-
-        return ReadWordsResponse(user_id=request.user_id, words=words)
+        return {
+            "user_id": request.user_id,
+            "words": words
+        }
 
     except mysql.connector.Error as e:
         print(f"Database error: {e}")
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        return {"error": f"Database error: {str(e)}"}
 
     except Exception as e:
         print(f"Unexpected error: {e}")
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+        return {"error": f"Unexpected error: {str(e)}"}
 
     finally:
         if connection and connection.is_connected():
             connection.close()
             print("Database connection closed")
-
-
-
-
 
 
 
