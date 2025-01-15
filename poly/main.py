@@ -17,14 +17,14 @@ app.add_middleware(
     allow_headers=["*"],  # 모든 헤더 허용
 )
 
-#---회원가입 user 아이디 입력---
+# ---회원가입 user 아이디 입력---
 class EmailRequest(BaseModel):
     user_email: str
 
 @app.post("/user/insert")
 async def insert_user_email(request: EmailRequest):
     """
-    Insert a user's email into the database.
+    Insert a user's email into the database. If the email already exists, return the existing user_id.
     """
     try:
         DB_CONFIG = {
@@ -36,20 +36,34 @@ async def insert_user_email(request: EmailRequest):
         }
 
         connection = mysql.connector.connect(**DB_CONFIG)
-        cursor = connection.cursor()
+        cursor = connection.cursor(dictionary=True)
 
-        insert_query = "INSERT INTO user (user_email, created_at) VALUES (%s, NOW())"
-        cursor.execute(insert_query, (request.user_email,))
+        # Check if the email already exists
+        select_query = "SELECT user_id FROM user WHERE user_email = %s"
+        cursor.execute(select_query, (request.user_email,))
+        result = cursor.fetchone()
 
-        connection.commit()
+        if result:
+            user_id = result['user_id']
+        else:
+            # Insert new email into the database
+            insert_query = "INSERT INTO user (user_email, created_at) VALUES (%s, NOW())"
+            cursor.execute(insert_query, (request.user_email,))
+            connection.commit()
+
+            # Retrieve the newly inserted user_id
+            user_id = cursor.lastrowid
+
         cursor.close()
         connection.close()
 
-        return {"message": "Email inserted successfully!"}
+        return {"message": "Email processed successfully!", "user_id": user_id}
+
     except mysql.connector.Error as e:
         return {"error": f"Database error: {str(e)}"}
     except Exception as e:
         return {"error": f"Unexpected error: {str(e)}"}
+
 
 # 데이터 삽입 예시 엔드포인트
 @app.post("/db/insert")
@@ -73,6 +87,7 @@ class GPTSearchRequest(BaseModel):
     searching_word: str
     context_sentence: str
 
+
 @app.post("/gpt/search")
 async def gpt_search(request: GPTSearchRequest):
     """
@@ -85,7 +100,22 @@ async def gpt_search(request: GPTSearchRequest):
         searching_word = request.searching_word
         context_sentence = request.context_sentence
 
+        # Call GPT feature to get the result
         gpt_result = search_word(searching_word, context_sentence, mother_tongue, target_language)
+
+        # Split the GPT result
+        try:
+            word_mean, word_explain, word_example = gpt_result.split("/")
+        except ValueError:
+            return {"error": "GPT result format is invalid. Expected format: 'word_mean/word_explain/word_example'"}
+
+        # Example: Replace this with the email of the user
+        user_email = "testuser@example.com"  # You can modify this to accept email dynamically
+
+        # Write to the database
+        write(user_email, searching_word, word_mean, word_explain, word_example)
+
+        # Fetch related images
         image_results = search_imgs(searching_word, num_images=12)
 
         return {
@@ -94,6 +124,7 @@ async def gpt_search(request: GPTSearchRequest):
         }
     except Exception as e:
         return {"error": str(e)}
+
 
 # FastAPI 실행
 if __name__ == "__main__":
