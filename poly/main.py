@@ -167,38 +167,55 @@ async def read_words(request: ReadWordsRequest):
             "password": "****",
             "database": "polyglot_db"
         }
-        # DB 연결
-        connection = mysql.connector.connect(**DB_CONFIG)
-        if connection.is_connected():
-            print("Successfully connected to the database")
-        else:
-            return {"error": "Failed to connect to the database"}
 
-        cursor = connection.cursor()
+        paragraphs = []  # 최종 반환할 문단 리스트
 
-        # user_id로 word_origin 데이터 읽기 (updated_at 기준 오래된 순)
-        query = """
-        SELECT word_origin
-        FROM word_review
-        WHERE user_id = %s
-        ORDER BY updated_at ASC
-        LIMIT %s
-        """
+        for _ in range(3):  # 3번 반복
+            # DB 연결
+            connection = mysql.connector.connect(**DB_CONFIG)
+            if not connection.is_connected():
+                return {"error": "Failed to connect to the database"}
 
-        cursor.execute(query, (request.user_id, request.max_words))
-        rows = cursor.fetchall()
+            cursor = connection.cursor()
 
-        # word_origin 리스트 생성
-        words = [row[0] for row in rows] if rows else []
+            # user_id로 word_origin 데이터 읽기 (updated_at 기준 오래된 순)
+            query_read = """
+            SELECT word_origin
+            FROM word_review
+            WHERE user_id = %s
+            ORDER BY updated_at ASC
+            LIMIT %s
+            """
 
-        # words 리스트를 gen_review에 넣어 문단 생성
-        if not words:
-            return {"error": "No words found for the given user_id"}
+            cursor.execute(query_read, (request.user_id, request.max_words))
+            rows = cursor.fetchall()
 
-        paragraph = gen_review(searched_words=words, target_language=request.target_language)
+            # word_origin 리스트 생성
+            words = [row[0] for row in rows] if rows else []
+
+            if not words:
+                print("No more words found for the given user_id")
+                break
+
+            # words 리스트를 gen_review에 넣어 문단 생성
+            paragraph = gen_review(searched_words=words, target_language=request.target_language)
+            paragraphs.append(paragraph)
+
+            # 읽은 단어 삭제
+            query_delete = """
+            DELETE FROM word_review
+            WHERE user_id = %s AND word_origin IN (%s)
+            """
+            format_strings = ', '.join(['%s'] * len(words))
+            cursor.execute(query_delete % (request.user_id, format_strings), tuple(words))
+            connection.commit()
+
+            # 연결 닫기
+            cursor.close()
+            connection.close()
 
         return {
-            "paragraph": paragraph
+            "paragraphs": paragraphs
         }
 
     except mysql.connector.Error as e:
@@ -215,15 +232,6 @@ async def read_words(request: ReadWordsRequest):
             print("Database connection closed")
 
 
-
-# 데이터 읽기 엔드포인트
-@app.get("/db/read")
-async def read_data():
-    try:
-        read()
-        return {"message": "Data read successfully (check server logs)."}
-    except Exception as e:
-        return -1
 
 # FastAPI 실행
 if __name__ == "__main__":
