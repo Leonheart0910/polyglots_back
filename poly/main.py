@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from db_insert import write, read
 from gpt_feature import search_word, gen_review, sent_seg
+from pydantic import BaseModel
 from img_searching_google import search_imgs
 
 app = FastAPI()
@@ -61,6 +62,44 @@ async def image_search(query: str, num_images: int = 12):
     except Exception as e:
         return {"error": str(e)}
 """
+
+class GPTSearchRequest(BaseModel):
+    searching_word: str
+    context_sentence: str
+
+@app.post("/gpt/search")
+async def gpt_search(request: GPTSearchRequest):
+    """
+    Endpoint to search for word information using the GPT feature and fetch related images.
+    Args:
+        request (GPTSearchRequest): The request containing searching_word and context_sentence.
+    Returns:
+        dict: The result or error message, including GPT search result and image search result.
+    """
+    try:
+        # Language parameters
+        mother_tongue = "korean"  # Replace with appropriate value or accept from frontend
+        target_language = "english"  # Replace with appropriate value or accept from frontend
+
+        # Extract values from request object
+        searching_word = request.searching_word
+        context_sentence = request.context_sentence
+
+        # Call the search_word function
+        gpt_result = search_word(searching_word, context_sentence, mother_tongue, target_language)
+
+        # Call the search_imgs function for image search
+        image_results = search_imgs(searching_word, num_images=12)  # Fetch top 3 images
+
+        # Return both GPT and image search results to the frontend
+        return {
+            "gpt_result": gpt_result,
+            "image_results": image_results
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 # FastAPI 실행 테스트
 if __name__ == "__main__":
     import uvicorn

@@ -109,3 +109,5 @@ def search_imgs(query:str, num_images:int = 12)-> List[str]:
         img_list.append(img)
 
     return img_list
+
+#print(search_imgs("puppies", 12)[0])

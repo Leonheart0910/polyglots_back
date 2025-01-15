@@ -6,7 +6,7 @@ DB_CONFIG = {
     "host": "43.201.113.85",
     "port": 3306,
     "user": "ubuntu",
-    "password": "******",
+    "password": "*****",
     "database": "polyglot_db"
 }
 

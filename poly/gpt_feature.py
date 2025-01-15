@@ -1,8 +1,9 @@
 from openai import OpenAI
 from typing import List
 
-openai_api_key = ""
+openai_api_key = "no key"
 client = OpenAI(api_key = openai_api_key)
+
 
 def search_word(searching_word:str, context_sentence:str, mother_tongue:str, target_language:str)->str:
     """Todo: Implementing exception when the response is not following the format.
@@ -59,3 +60,5 @@ def sent_seg(complex_sentence:str, mother_tongue:str, target_language:str)->str:
         max_completion_tokens=2048
     )
     return response.choices[0].message.content
+
+#search_word("hello", "This is hello", "korean", "en")
