@@ -188,7 +188,7 @@ async def read_words(request: ReadWordsRequest):
         rows = cursor.fetchall()
 
         # word_origin 리스트 생성
-        words = [row[0] for row in rows]
+        words = [row[0] for row in rows] if rows else []
 
         return ReadWordsResponse(user_id=request.user_id, words=words)
 
