@@ -2,8 +2,8 @@ import requests
 
 url = "http://127.0.0.1:8000/gpt/search"
 data = {
-    "searching_word": "legings",
-    "context_sentence": "I am wearing pretty legings"
+    "searching_word": "에반게리온",
+    "context_sentence": "야 십덕새기야 에반게리온 쳐보고 있냐"
 }
 
 # POST 요청 보내기
