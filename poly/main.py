@@ -8,6 +8,8 @@ import mysql.connector
 
 app = FastAPI()
 
+#page - 1 (login)
+#------------------------------------------------------------------------------#
 # CORS 설정 추가
 app.add_middleware(
     CORSMiddleware,
@@ -65,27 +67,15 @@ async def insert_user_email(request: EmailRequest):
         return {"error": f"Unexpected error: {str(e)}"}
 
 
-# 데이터 삽입 예시 엔드포인트
-@app.post("/db/insert")
-async def insert_data(user_email: str, word_origin: str, word_mean: str, word_explain: str, word_example: str):
-    try:
-        write(user_email, word_origin, word_mean, word_explain, word_example)
-        return {"message": "Data inserted successfully!"}
-    except Exception as e:
-        return -1
 
-# 데이터 읽기 엔드포인트
-@app.get("/db/read")
-async def read_data():
-    try:
-        read()
-        return {"message": "Data read successfully (check server logs)."}
-    except Exception as e:
-        return -1
+#page - 2 (feat 1 : 단어풀이 및 사진참조) * db 에 저장
+#------------------------------------------------------------------------------#
 
 class GPTSearchRequest(BaseModel):
+    user_id : str
     searching_word: str
     context_sentence: str
+    target_language: str
 
 
 @app.post("/gpt/search")
@@ -95,7 +85,7 @@ async def gpt_search(request: GPTSearchRequest):
     """
     try:
         mother_tongue = "english"
-        target_language = "korean"
+        target_language = request.target_language
 
         searching_word = request.searching_word
         context_sentence = request.context_sentence
@@ -125,6 +115,36 @@ async def gpt_search(request: GPTSearchRequest):
     except Exception as e:
         return {"error": str(e)}
 
+
+
+#
+#------------------------------------------------------------------------------#
+
+
+
+
+
+
+
+
+
+# 데이터 삽입 예시 엔드포인트
+@app.post("/db/insert")
+async def insert_data(user_email: str, word_origin: str, word_mean: str, word_explain: str, word_example: str):
+    try:
+        write(user_email, word_origin, word_mean, word_explain, word_example)
+        return {"message": "Data inserted successfully!"}
+    except Exception as e:
+        return -1
+
+# 데이터 읽기 엔드포인트
+@app.get("/db/read")
+async def read_data():
+    try:
+        read()
+        return {"message": "Data read successfully (check server logs)."}
+    except Exception as e:
+        return -1
 
 # FastAPI 실행
 if __name__ == "__main__":

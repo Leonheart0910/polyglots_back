@@ -1,8 +1,17 @@
 from openai import OpenAI
 from typing import List
+import os
+from dotenv import load_dotenv
 
-openai_api_key = ""
-client = OpenAI(api_key = openai_api_key)
+# Load environment variables from .env
+load_dotenv()
+
+# Fetch API key from .env
+openai_api_key = os.getenv("OPENAI_API_KEY")
+if not openai_api_key:
+    raise ValueError("OPENAI_API_KEY is not set in .env")
+
+client = OpenAI(api_key=openai_api_key)
 
 
 def search_word(searching_word:str, context_sentence:str, mother_tongue:str, target_language:str)->str:
