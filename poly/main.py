@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from db_insert import write, read
+from db_insert import write_word, read
 from gpt_feature import search_word, gen_review, sent_seg
 from pydantic import BaseModel
 from img_searching_google import search_imgs
@@ -72,7 +72,7 @@ async def insert_user_email(request: EmailRequest):
 #------------------------------------------------------------------------------#
 
 class GPTSearchRequest(BaseModel):
-    user_id : str
+    user_id : int
     searching_word: str
     context_sentence: str
     target_language: str
@@ -87,9 +87,9 @@ async def gpt_search(request: GPTSearchRequest):
         mother_tongue = "english"
         target_language = request.target_language
 
+        user_id = int(request.user_id)
         searching_word = request.searching_word
         context_sentence = request.context_sentence
-
         # Call GPT feature to get the result
         gpt_result = search_word(searching_word, context_sentence, mother_tongue, target_language)
 
@@ -103,7 +103,7 @@ async def gpt_search(request: GPTSearchRequest):
         user_email = "testuser@example.com"  # You can modify this to accept email dynamically
 
         # Write to the database
-        write(user_email, searching_word, word_mean, word_explain, word_example)
+        write_word(user_id, searching_word, word_mean, word_explain, word_example)
 
         # Fetch related images
         image_results = search_imgs(searching_word, num_images=12)
@@ -119,23 +119,6 @@ async def gpt_search(request: GPTSearchRequest):
 
 #
 #------------------------------------------------------------------------------#
-
-
-
-
-
-
-
-
-
-# 데이터 삽입 예시 엔드포인트
-@app.post("/db/insert")
-async def insert_data(user_email: str, word_origin: str, word_mean: str, word_explain: str, word_example: str):
-    try:
-        write(user_email, word_origin, word_mean, word_explain, word_example)
-        return {"message": "Data inserted successfully!"}
-    except Exception as e:
-        return -1
 
 # 데이터 읽기 엔드포인트
 @app.get("/db/read")
